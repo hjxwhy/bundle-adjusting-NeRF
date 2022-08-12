@@ -12,7 +12,16 @@ from util import log
 # torch.backends.cudnn.enabled = False
 # torch.backends.cudnn.benchmark = False
 # torch.backends.cudnn.deterministic = True
-
+#这种解析太烦了，看不懂就别看了，用这种方法解析
+# parser = argparse.ArgumentParser()
+# parser.add_argument("--data_path", help="data path.", type=str, required=True)
+# parser.add_argument("--out_dir", help="Output directory.", type=str, required=True)
+# parser.add_argument("--dataset_name", help="Single or multi data.", type=str, choices=['multi_blender', 'blender'],
+#                     required=True)
+# parser.add_argument("--config", help="Path to config file.", required=False, default='./configs/waymo.yaml')
+# parser.add_argument("opts", nargs=argparse.REMAINDER,
+#                     help="Modify hparams. Example: train.py resume out_dir TRAIN.BATCH_SIZE 2")
+#https://github.com/cmusatyalab/mega-nerf/blob/main/mega_nerf/opts.py 再复杂点用这种，再写个config用加载进去多快，不然你就直接抄
 def parse_arguments(args):
     """
     Parse arguments from command line.
@@ -22,8 +31,8 @@ def parse_arguments(args):
             --key1.key2.key3!      --> False
     """
     opt_cmd = {}
-    for arg in args:
-        assert(arg.startswith("--"))
+    for arg in args:#循环逐个解析
+        assert(arg.startswith("--")) #判断是否是以--合法开始的
         if "=" not in arg[2:]:
             key_str,value = (arg[2:-1],"false") if arg[-1]=="!" else (arg[2:],"true")
         else:

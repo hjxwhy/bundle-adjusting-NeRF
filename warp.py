@@ -42,7 +42,7 @@ def warp_grid(opt,xy_grid,warp):
         assert(opt.warp.dof==8)
         xy_grid_hom = camera.to_hom(xy_grid)
         warp_matrix = lie.sl3_to_SL3(warp)
-        warped_grid_hom = xy_grid_hom@warp_matrix.transpose(-2,-1)
+        warped_grid_hom = xy_grid_hom@warp_matrix.transpose(-2,-1) #原本要左乘[3, 3] * [3, 1]，但是整体转置 
         warped_grid = warped_grid_hom[...,:2]/(warped_grid_hom[...,2:]+1e-8) # [B,HW,2]
     else: assert(False)
     return warped_grid

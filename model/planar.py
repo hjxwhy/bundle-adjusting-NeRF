@@ -17,14 +17,14 @@ import warp
 
 # ============================ main engine for training and evaluation ============================
 
-class Model(base.Model):
+class Model(base.Model):#继承
 
     def __init__(self,opt):
         super().__init__(opt)
         opt.H_crop,opt.W_crop = opt.data.patch_crop
 
-    def load_dataset(self,opt,eval_split=None):
-        image_raw = PIL.Image.open(opt.data.image_fname)
+    def load_dataset(self,opt,eval_split=None): #重载
+        image_raw = PIL.Image.open(opt.data.image_fname)#这个是恢复平面图像的，直接读取这张图像
         self.image_raw = torchvision_F.to_tensor(image_raw).to(opt.device)
 
     def build_networks(self,opt):
@@ -38,17 +38,17 @@ class Model(base.Model):
             dict(params=self.graph.neural_image.parameters(),lr=opt.optim.lr),
             dict(params=self.graph.warp_param.parameters(),lr=opt.optim.lr_warp),
         ]
-        optimizer = getattr(torch.optim,opt.optim.algo)
+        optimizer = getattr(torch.optim,opt.optim.algo)#getattr 等价于getattr.***
         self.optim = optimizer(optim_list)
         # set up scheduler
         if opt.optim.sched:
-            scheduler = getattr(torch.optim.lr_scheduler,opt.optim.sched.type)
+            scheduler = getattr(torch.optim.lr_scheduler,opt.optim.sched.type)#学习率的衰减
             kwargs = { k:v for k,v in opt.optim.sched.items() if k!="type" }
             self.sched = scheduler(self.optim,**kwargs)
 
     def setup_visualizer(self,opt):
-        super().setup_visualizer(opt)
-        # set colors for visualization
+        super().setup_visualizer(opt)#设置可视化的工具，用tensorboard还是viddom
+        # set colors for visualization 七七八八无关紧要的颜色设置
         box_colors = ["#ff0000","#40afff","#9314ff","#ffd700","#00ff00"]
         box_colors = list(map(util.colorcode_to_number,box_colors))
         self.box_colors = np.array(box_colors).astype(int)
@@ -170,15 +170,15 @@ class Model(base.Model):
 
 # ============================ computation graph for forward/backprop ============================
 
-class Graph(base.Graph):
+class Graph(base.Graph):#重载
 
     def __init__(self,opt):
         super().__init__(opt)
-        self.neural_image = NeuralImageFunction(opt)
+        self.neural_image = NeuralImageFunction(opt)# 图像的隐式表达
 
     def forward(self,opt,var,mode=None):
         xy_grid = warp.get_normalized_pixel_grid_crop(opt)
-        xy_grid_warped = warp.warp_grid(opt,xy_grid,self.warp_param.weight)
+        xy_grid_warped = warp.warp_grid(opt,xy_grid,self.warp_param.weight)# self.warp_param: pose
         # render images
         var.rgb_warped = self.neural_image.forward(opt,xy_grid_warped) # [B,HW,3]
         var.rgb_warped_map = var.rgb_warped.view(opt.batch_size,opt.H_crop,opt.W_crop,3).permute(0,3,1,2) # [B,3,H,W]
@@ -199,17 +199,17 @@ class NeuralImageFunction(torch.nn.Module):
         self.progress = torch.nn.Parameter(torch.tensor(0.)) # use Parameter so it could be checkpointed
 
     def define_network(self,opt):
-        input_2D_dim = 2+4*opt.arch.posenc.L_2D if opt.arch.posenc else 2
+        input_2D_dim = 2+4*opt.arch.posenc.L_2D if opt.arch.posenc else 2 #对图像二维坐标的position encoding
         # point-wise RGB prediction
         self.mlp = torch.nn.ModuleList()
-        L = util.get_layer_dims(opt.arch.layers)
+        L = util.get_layer_dims(opt.arch.layers)# layers: [null,256,256,256,256,3]获取网络每层的宽度，初始化网络
         for li,(k_in,k_out) in enumerate(L):
             if li==0: k_in = input_2D_dim
             if li in opt.arch.skip: k_in += input_2D_dim
             linear = torch.nn.Linear(k_in,k_out)
             if opt.barf_c2f and li==0:
                 # rescale first layer init (distribution was for pos.enc. but only xy is first used)
-                scale = np.sqrt(input_2D_dim/2.)
+                scale = np.sqrt(input_2D_dim/2.)#trick，没什么道理可说
                 linear.weight.data *= scale
                 linear.bias.data *= scale
             self.mlp.append(linear)

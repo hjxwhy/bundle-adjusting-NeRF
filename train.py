@@ -11,13 +11,13 @@ def main():
     log.process(os.getpid())
     log.title("[{}] (PyTorch code for training NeRF/BARF)".format(sys.argv[0]))
 
-    opt_cmd = options.parse_arguments(sys.argv[1:])
+    opt_cmd = options.parse_arguments(sys.argv[1:]) # 解析命令行参数
     opt = options.set(opt_cmd=opt_cmd)
     options.save_options_file(opt)
 
     with torch.cuda.device(opt.device):
 
-        model = importlib.import_module("model.{}".format(opt.model))
+        model = importlib.import_module("model.{}".format(opt.model)) #导入模块，跟import功能一样
         m = model.Model(opt)
 
         m.load_dataset(opt)
