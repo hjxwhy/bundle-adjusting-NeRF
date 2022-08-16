@@ -24,11 +24,12 @@ class Model(base.Model):#继承
         opt.H_crop,opt.W_crop = opt.data.patch_crop
 
     def load_dataset(self,opt,eval_split=None): #重载
-        image_raw = PIL.Image.open(opt.data.image_fname)#这个是恢复平面图像的，直接读取这张图像
-        self.image_raw = torchvision_F.to_tensor(image_raw).to(opt.device)
+        image_raw = PIL.Image.open(opt.data.image_fname)#这个是恢复平面图像的，直接读取这张图像 [H, W, C]
+        self.image_raw = torchvision_F.to_tensor(image_raw).to(opt.device)# [1, C, H, W]
 
     def build_networks(self,opt):
         super().build_networks(opt)
+        #[5, 8] nn.Parameter
         self.graph.warp_param = torch.nn.Embedding(opt.batch_size,opt.warp.dof).to(opt.device)
         torch.nn.init.zeros_(self.graph.warp_param.weight)
 
@@ -38,6 +39,7 @@ class Model(base.Model):#继承
             dict(params=self.graph.neural_image.parameters(),lr=opt.optim.lr),
             dict(params=self.graph.warp_param.parameters(),lr=opt.optim.lr_warp),
         ]
+        # torch.optim.Adam
         optimizer = getattr(torch.optim,opt.optim.algo)#getattr 等价于getattr.***
         self.optim = optimizer(optim_list)
         # set up scheduler
@@ -47,7 +49,7 @@ class Model(base.Model):#继承
             self.sched = scheduler(self.optim,**kwargs)
 
     def setup_visualizer(self,opt):
-        super().setup_visualizer(opt)#设置可视化的工具，用tensorboard还是viddom
+        super().setup_visualizer(opt)#设置可视化的工具，用tensorboard还是vidom, wandb
         # set colors for visualization 七七八八无关紧要的颜色设置
         box_colors = ["#ff0000","#40afff","#9314ff","#ffd700","#00ff00"]
         box_colors = list(map(util.colorcode_to_number,box_colors))
@@ -63,9 +65,9 @@ class Model(base.Model):#继承
         log.title("TRAINING START")
         self.timer = edict(start=time.time(),it_mean=None)
         self.ep = self.it = self.vis_it = 0
-        self.graph.train()
+        self.graph.train()#self.graph.eval()
         var = edict(idx=torch.arange(opt.batch_size))
-        # pre-generate perturbations
+        # pre-generate perturbations{'image_pert': , 'idx':range(0, 6)}
         self.warp_pert,var.image_pert = self.generate_warp_perturbation(opt)
         # train
         var = util.move_to_device(var,opt.device)
@@ -110,7 +112,7 @@ class Model(base.Model):#继承
         if opt.warp.fix_first:
             warp_pert_all[0] = 0
         # create warped image patches
-        xy_grid = warp.get_normalized_pixel_grid_crop(opt) # [B,HW,2]
+        xy_grid = warp.get_normalized_pixel_grid_crop(opt) # [B,HW,2] xy_grid_warped[..., None]
         xy_grid_warped = warp.warp_grid(opt,xy_grid,warp_pert_all)
         xy_grid_warped = xy_grid_warped.view([opt.batch_size,opt.H_crop,opt.W_crop,2])
         xy_grid_warped = torch.stack([xy_grid_warped[...,0]*max(opt.H,opt.W)/opt.W,

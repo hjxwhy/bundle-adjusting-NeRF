@@ -32,9 +32,9 @@ class Model():
         self.test_loader = self.test_data.setup_loader(opt,shuffle=False)
 
     def build_networks(self,opt):
-        graph = importlib.import_module("model.{}".format(opt.model))
+        graph = importlib.import_module("model.{}".format(opt.model)) # import model.planar
         log.info("building networks...")
-        self.graph = graph.Graph(opt).to(opt.device)
+        self.graph = graph.Graph(opt).to(opt.device)# model.planar.Graph
 
     def setup_optimizer(self,opt):
         log.info("setting up optimizers...")

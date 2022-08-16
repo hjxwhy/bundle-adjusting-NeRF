@@ -118,6 +118,7 @@ def get_child_state_dict(state_dict,key):
     return { ".".join(k.split(".")[1:]): v for k,v in state_dict.items() if k.startswith("{}.".format(key)) }
 
 def restore_checkpoint(opt,model,load_name=None,resume=False):
+    # pytorch lightning
     assert((load_name is None)==(resume is not False)) # resume can be True/False or epoch numbers
     if resume:
         load_name = "{0}/model.ckpt".format(opt.output_path) if resume is True else \
